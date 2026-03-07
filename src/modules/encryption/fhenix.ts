@@ -17,9 +17,11 @@ export class FhenixEncryptionService implements EncryptionService {
       transport: http(rpcUrl),
     });
 
+    // we want everyone to be able to get a permit
     await cofhejs.initializeWithViem({
       viemClient: publicClient,
-      viemWalletClient: walletClient,       
+      viemWalletClient: walletClient,
+      generatePermit: true,    
     });
 
     await cofhejs.createPermit();
@@ -29,7 +31,7 @@ export class FhenixEncryptionService implements EncryptionService {
   async encrypt(data: FheData): Promise<any> {
     const result = await cofhejs.encrypt({
       permission: "permission",
-      data: Encryptable.uint64(data.value),
+      data: Encryptable.uint32(data.value),
     } as any);
 
     return result;

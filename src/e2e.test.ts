@@ -134,7 +134,7 @@ describe("Fangorn FHE encryption and storage", () => {
     const entry = await testbed.delegatorFangorn.getDataSourceData(
       delegatorAccount.address,
       datasourceName,
-      tag,
+      tag,      
     );
     expect(entry.cid).toBeTruthy();
     console.log(`Ciphertext stored at CID: ${entry.cid}`);
@@ -142,6 +142,11 @@ describe("Fangorn FHE encryption and storage", () => {
     // fetch the actual ciphertext payload and sanity check structure
     const ciphertext = await testbed.storage.retrieve(entry.cid);
     expect(ciphertext).toBeTruthy();
+
+    // call contract
+    // get result
+    // unseal
+
 	// // FHE encrypted u64
     // expect((ciphertext as any).data).toBeTruthy();
 	// // cofhejs permit

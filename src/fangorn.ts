@@ -73,7 +73,7 @@ export class Fangorn {
 		if (datasource.manifestCid && !overwrite) {
 			const oldManifest = await this.fetchManifest(datasource.manifestCid);
 			this.loadManifest(oldManifest);
-			try {
+			try {		
 				await this.storage.delete(datasource.manifestCid);
 			} catch (e) {
 				console.warn("Failed to unpin old manifest:", e);
@@ -184,7 +184,7 @@ export class Fangorn {
 		if (!entry) {
 			throw new Error(`Entry not found: ${tag}`);
 		}
-		
+
 		return entry;
 	}
 

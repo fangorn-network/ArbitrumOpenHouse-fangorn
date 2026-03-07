@@ -118,20 +118,20 @@ export class TestBed {
 	}
 
 	/**
-	 * Encrypt a u64 with FHE and commit it to a vault
-	 * with a compute descriptor
-	 */
-	async encryptAndUpload(
-		datasourceName: string,
-		data: FheData[],
-		computeDescriptor: ComputeDescriptor,
-	): Promise<string> {
-		return await this.delegatorFangorn.upload(
-			datasourceName,
-			data,
-			computeDescriptor,
-		);
-	}
+			 * Encrypt a u64 with FHE and commit it to a vault
+			 * with a compute descriptor
+			 */
+			async encryptAndUpload(
+				datasourceName: string,
+				data: FheData[],
+				computeDescriptor: ComputeDescriptor,
+			): Promise<string> {
+				return await this.delegatorFangorn.upload(
+					datasourceName,
+					data,
+					computeDescriptor,
+				);
+			}
 
 	async checkDatasourceRegistryExistence(
 		who: Address,
