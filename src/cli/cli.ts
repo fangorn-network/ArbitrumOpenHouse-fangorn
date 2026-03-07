@@ -647,7 +647,7 @@ program
 			const computeDescriptor: ComputeDescriptor = {
 				type: "x402f facilitator",
 				price,
-				description: `Blood type data: ${bloodTypeValues.map((v) => BLOOD_TYPES[v]).join(", ")}`,
+				description: `Blood type data`,
 			};
 
 			note(
