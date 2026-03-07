@@ -13,7 +13,11 @@ import {
 import { createWalletClient, Hex, http, Address, Chain } from "viem";
 import { privateKeyToAccount, PrivateKeyAccount } from "viem/accounts";
 import { Fangorn } from "../fangorn.js";
-import { ComputeDescriptor, FheData, Filedata } from "../types/index.js";
+import {
+	ComputeDescriptor,
+	FheData as FheInputData,
+	Filedata,
+} from "../types/index.js";
 import "dotenv/config";
 import { PinataSDK } from "pinata";
 import { PinataStorage } from "../providers/storage/index.js";
@@ -639,7 +643,7 @@ program
 			const tag = options.tag as string;
 			const price = options.price as string;
 
-			const fheData: FheData[] = bloodTypeValues.map((v, i) => ({
+			const fheData: FheInputData[] = bloodTypeValues.map((v, i) => ({
 				tag: bloodTypeValues.length === 1 ? tag : `${i}-${tag}`,
 				value: BigInt(v),
 			}));
