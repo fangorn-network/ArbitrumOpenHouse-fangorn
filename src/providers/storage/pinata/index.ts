@@ -10,7 +10,13 @@ export class PinataStorage implements StorageProvider<any> {
 	}
 
 	async store(data: any, metadata?: Record<string, unknown>) {
-		const content = typeof data === "string" ? data : JSON.stringify(data);
+		const content =
+			typeof data === "string"
+				? data
+				: JSON.stringify(data, (_, val) =>
+						typeof val === "bigint" ? val.toString() : val,
+					);
+
 		const file = new File([content], (metadata as any)?.name ?? "file", {
 			type: "text/plain",
 		});

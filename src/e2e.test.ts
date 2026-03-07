@@ -1,159 +1,241 @@
 import { beforeAll, describe, it, expect } from "vitest";
 import {
-  Account,
-  createWalletClient,
-  Hex,
-  http,
-  WalletClient,
-  type Address,
+	Account,
+	createWalletClient,
+	Hex,
+	http,
+	WalletClient,
+	createPublicClient,
+	PublicClient,
+	type Address,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { arbitrumSepolia, baseSepolia } from "viem/chains";
 import { TestBed } from "./test/testbed.js";
 import { deployContract } from "./deployContract.js";
 import { FheData } from "./types/index.js";
+import PatientEvaluatorABI from "../../ArbitrumFoundersHouse/cofhe-hardhat-starter/artifacts/contracts/PatientEvaluator.sol/PatientEvaluator.json";
+import { FhenixEncryptionService } from "./modules/encryption/fhenix.js";
 
 const getEnv = (key: string) => {
-  const value = process.env[key];
-  if (!value) throw new Error(`Environment variable ${key} is not set`);
-  return value;
+	const value = process.env[key];
+	if (!value) throw new Error(`Environment variable ${key} is not set`);
+	return value;
 };
 
 describe("Fangorn FHE encryption and storage", () => {
-  let jwt: string;
-  let gateway: string;
+	let jwt: string;
+	let gateway: string;
 
-  let delegatorAccount: Account;
-  let delegatorWalletClient: WalletClient;
+	let delegatorAccount: Account;
+	let delegatorWalletClient: WalletClient;
 
-  let dataSourceRegistryAddress: Address;
+	let dataSourceRegistryAddress: Address;
 
-  let rpcUrl: string;
-  let chainName: string;
-  let caip2: number;
+	let patientEvaluatorContractAddress: Address;
 
-  let testbed: TestBed;
+	let publicClient: PublicClient;
 
-  beforeAll(async () => {
-    chainName = getEnv("CHAIN_NAME");
-    rpcUrl = getEnv("CHAIN_RPC_URL");
-    jwt = getEnv("PINATA_JWT");
-    gateway = getEnv("PINATA_GATEWAY");
-    caip2 = parseInt(getEnv("CAIP2"));
+	let rpcUrl: string;
+	let chainName: string;
+	let caip2: number;
 
-    const chain = chainName === "baseSepolia" ? baseSepolia : arbitrumSepolia;
+	let testbed: TestBed;
 
-    delegatorAccount = privateKeyToAccount(
-      getEnv("DELEGATOR_ETH_PRIVATE_KEY") as Hex,
-    );
+	beforeAll(async () => {
+		chainName = getEnv("CHAIN_NAME");
+		rpcUrl = getEnv("CHAIN_RPC_URL");
+		jwt = getEnv("PINATA_JWT");
+		gateway = getEnv("PINATA_GATEWAY");
+		caip2 = parseInt(getEnv("CAIP2"));
+		patientEvaluatorContractAddress = process.env
+			.PATIENT_EVALUATOR_ADDR as Address;
 
-    delegatorWalletClient = createWalletClient({
-      account: delegatorAccount,
-      transport: http(rpcUrl),
-      chain,
-    });
+		const chain = chainName === "baseSepolia" ? baseSepolia : arbitrumSepolia;
 
-    dataSourceRegistryAddress = process.env.DS_REGISTRY_ADDR as Address;
-    if (!dataSourceRegistryAddress) {
-      console.log("Deploying DSRegistry Contract...");
-      const deployment = await deployContract({
-        account: delegatorAccount,
-        contractName: "DSRegistry",
-        constructorArgs: [],
-        chain,
-      });
-      dataSourceRegistryAddress = deployment.address;
-    }
+		publicClient = createPublicClient({
+			chain: arbitrumSepolia,
+			transport: http(rpcUrl),
+		});
 
-    console.log(`Data Source Registry: ${dataSourceRegistryAddress}`);
+		delegatorAccount = privateKeyToAccount(
+			getEnv("DELEGATOR_ETH_PRIVATE_KEY") as Hex,
+		);
 
-    testbed = await TestBed.init(
-      delegatorWalletClient,
-	  // delegatee same as delegator for now
-      delegatorWalletClient,
-      jwt,
-      gateway,
-      dataSourceRegistryAddress,
-      rpcUrl,
-      "arbitrumSepolia",
-      caip2,
-    );
-  }, 120_000);
+		delegatorWalletClient = createWalletClient({
+			account: delegatorAccount,
+			transport: http(rpcUrl),
+			chain,
+		});
 
-  it("should FHE-encrypt a u64, store the ciphertext, and verify it is retrievable", async () => {
-    const datasourceName = `fhe_test_${Date.now()}`;
+		dataSourceRegistryAddress = process.env.DS_REGISTRY_ADDR as Address;
+		if (!dataSourceRegistryAddress) {
+			console.log("Deploying DSRegistry Contract...");
+			const deployment = await deployContract({
+				account: delegatorAccount,
+				contractName: "DSRegistry",
+				constructorArgs: [],
+				chain,
+			});
+			dataSourceRegistryAddress = deployment.address;
+		}
 
-    // register datasource
-    const id = await testbed.registerDatasource(datasourceName);
-    expect(id).toBeTruthy();
-    console.log(`Datasource registered: ${id}`);
+		console.log(`Data Source Registry: ${dataSourceRegistryAddress}`);
 
-    // verify it exists on-chain
-    const exists = await testbed.checkDatasourceRegistryExistence(
-      delegatorAccount.address,
-      datasourceName,
-    );
-    expect(exists).toBe(true);
+		testbed = await TestBed.init(
+			delegatorWalletClient,
+			// delegatee same as delegator for now
+			delegatorWalletClient,
+			jwt,
+			gateway,
+			dataSourceRegistryAddress,
+			rpcUrl,
+			"arbitrumSepolia",
+			caip2,
+		);
+	}, 120_000);
 
-    // data to encrypt
-    const tag = "sensor-reading-1";
-    const data: FheData[] = [
-      {
-        tag,
-		// plaintext
-        value: 42n,
-        fileType: "fhe/uint64",
-      },
-    ];
+	it("should FHE-encrypt a u64, store the ciphertext, and verify it is retrievable", async () => {
+		const datasourceName = `fhe_test_${Date.now()}`;
 
-    const computeDescriptor = {
-      type: "facilitator-x402",
-      description: "Facilitator-gated FHE computation (mocked)",
-      price: "0.0001"
-    };
+		// register datasource
+		const id = await testbed.registerDatasource(datasourceName);
+		expect(id).toBeTruthy();
+		console.log(`Datasource registered: ${id}`);
 
-    // encrypt and upload
-    const manifestCid = await testbed.encryptAndUpload(
-      datasourceName,
-      data,
-      computeDescriptor,
-    );
-    expect(manifestCid).toBeTruthy();
-    console.log(`Manifest stored at CID: ${manifestCid}`);
+		// verify it exists on-chain
+		const exists = await testbed.checkDatasourceRegistryExistence(
+			delegatorAccount.address,
+			datasourceName,
+		);
+		expect(exists).toBe(true);
 
-    // wait for Pinata to propagate
-    await new Promise((resolve) => setTimeout(resolve, 4_000));
+		// data to encrypt
+		const tag = "Patient Blood Data - 1";
+		const patientData: FheData[] = [
+			{
+				tag,
+				value: 0n,
+			},
+			{
+				tag,
+				value: 2n,
+			},
+			{
+				tag,
+				value: 2n,
+			},
+			{
+				tag,
+				value: 1n,
+			},
+		];
 
-    // verify the entry exists in the manifest
-    await testbed.checkDataExistence(
-      delegatorAccount.address,
-      datasourceName,
-      tag,
-    );
+		const computeDescriptor = {
+			type: "facilitator-x402",
+			description: "Facilitator-gated FHE computation (mocked)",
+			price: "0.0001",
+		};
 
-    // retrieve the raw ciphertext from storage and verify it's non-empty
-    const entry = await testbed.delegatorFangorn.getDataSourceData(
-      delegatorAccount.address,
-      datasourceName,
-      tag,
-    );
-    expect(entry.cid).toBeTruthy();
-    console.log(`Ciphertext stored at CID: ${entry.cid}`);
+		// encrypt and upload
+		const manifestCid = await testbed.encryptAndUpload(
+			datasourceName,
+			patientData,
+			computeDescriptor,
+		);
+		expect(manifestCid).toBeTruthy();
+		console.log(`Manifest stored at CID: ${manifestCid}`);
 
-    // fetch the actual ciphertext payload and sanity check structure
-    const ciphertext = await testbed.storage.retrieve(entry.cid);
-    expect(ciphertext).toBeTruthy();
+		// wait for Pinata to propagate
+		await new Promise((resolve) => setTimeout(resolve, 4_000));
 
-    // call contract
-    // get result
-    // unseal
+		// verify the entry exists in the manifest
+		await testbed.checkDataExistence(
+			delegatorAccount.address,
+			datasourceName,
+			tag,
+		);
 
-	// // FHE encrypted u64
-    // expect((ciphertext as any).data).toBeTruthy();
-	// // cofhejs permit
-    // expect((ciphertext as any).permission).toBeTruthy(); 
+		// retrieve the raw ciphertext from storage and verify it's non-empty
+		const entry = await testbed.delegatorFangorn.getDataSourceData(
+			delegatorAccount.address,
+			datasourceName,
+			tag,
+		);
+		expect(entry.cid).toBeTruthy();
+		console.log(`Ciphertext stored at CID: ${entry.cid}`);
 
-    console.log("FHE ciphertext stored and retrieved successfully.");
-    console.log("Next step: facilitator pays => executes => caller unseals (mocked until FHE contract is ready).");
-  }, 120_000);
+		// fetch the actual ciphertext payload and sanity check structure
+		const ciphertext = await testbed.storage.retrieve(entry.cid);
+		expect(ciphertext).toBeTruthy();
+
+		console.log("ciphertext");
+		console.log(ciphertext);
+
+		const hashCountMatch = await delegatorWalletClient.writeContract({
+			address: patientEvaluatorContractAddress,
+			abi: PatientEvaluatorABI.abi,
+			functionName: "countMatch",
+			args: [patientData],
+		});
+
+		const result = await publicClient.readContract({
+			address: patientEvaluatorContractAddress,
+			abi: PatientEvaluatorABI.abi,
+			functionName: "getAllTypesCount",
+		});
+
+		console.log("Types count result: ", result);
+
+		const hashReset = await delegatorWalletClient.writeContract({
+			address: patientEvaluatorContractAddress,
+			abi: PatientEvaluatorABI.abi,
+			functionName: "reset",
+		});
+
+		const bloodType = {
+			tag: "target blood type",
+			// plaintext
+			value: 2n,
+			fileType: "fhe/uint32",
+		};
+
+		const bloodTypeEnc = testbed.delegatorFangorn
+			.getEncryptionService()
+			.encrypt(bloodType);
+
+		const hashCountMatchSpecific = await delegatorWalletClient.writeContract({
+			address: patientEvaluatorContractAddress,
+			abi: PatientEvaluatorABI.abi,
+			functionName: "countMatchSpecific",
+		});
+
+		const targetCount = await publicClient.readContract({
+			address: patientEvaluatorContractAddress,
+			abi: PatientEvaluatorABI.abi,
+			functionName: "getMatchedTypeCount",
+		});
+
+		console.log("targetCount", targetCount);
+
+		const hashReset2 = await delegatorWalletClient.writeContract({
+			address: patientEvaluatorContractAddress,
+			abi: PatientEvaluatorABI.abi,
+			functionName: "reset",
+		});
+
+		// call contract
+		// get result
+		// unseal
+
+		// // FHE encrypted u64
+		// expect((ciphertext as any).data).toBeTruthy();
+		// // cofhejs permit
+		// expect((ciphertext as any).permission).toBeTruthy();
+
+		console.log("FHE ciphertext stored and retrieved successfully.");
+		console.log(
+			"Next step: facilitator pays => executes => caller unseals (mocked until FHE contract is ready).",
+		);
+	}, 120_000);
 });

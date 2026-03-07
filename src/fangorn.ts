@@ -16,6 +16,7 @@ import {
 	EncryptionService,
 	FhenixEncryptionService,
 } from "./modules/encryption/index.js";
+import { cofhejs, Encryptable, FheTypes } from "cofhejs/node";
 
 /**
  *
@@ -50,7 +51,7 @@ export class Fangorn {
 
 		const encryptionService = await FhenixEncryptionService.init(
 			walletClient,
-			config.chainName,
+			resolvedConfig.rpcUrl,
 		);
 
 		return new Fangorn(
