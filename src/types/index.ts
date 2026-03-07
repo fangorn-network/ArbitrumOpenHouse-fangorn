@@ -9,8 +9,10 @@ export interface FheData {
 }
 
 export interface ComputeDescriptor {
-  // ex: "x402f facilitator"	
+  // e.g.: "x402f facilitator"	
   type: string;
+  // e.g. "0.0001" = .0001 USDC 
+  price: string;
   // a human-readable description 
   description?: string;
   // the FHE contract to call

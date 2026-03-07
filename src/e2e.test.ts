@@ -109,6 +109,7 @@ describe("Fangorn FHE encryption and storage", () => {
     const computeDescriptor = {
       type: "facilitator-x402",
       description: "Facilitator-gated FHE computation (mocked)",
+      price: "0.0001"
     };
 
     // encrypt and upload
@@ -134,7 +135,7 @@ describe("Fangorn FHE encryption and storage", () => {
     const entry = await testbed.delegatorFangorn.getDataSourceData(
       delegatorAccount.address,
       datasourceName,
-      tag,      
+      tag,
     );
     expect(entry.cid).toBeTruthy();
     console.log(`Ciphertext stored at CID: ${entry.cid}`);

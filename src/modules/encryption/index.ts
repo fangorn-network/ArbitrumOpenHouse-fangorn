@@ -1,6 +1,8 @@
 import { WalletClient } from "viem";
 import { FheData } from "../../types";
 
+export * from './fhenix.js';
+
 export interface EncryptionService {
 	encrypt(data: FheData): Promise<any>;
 	createAuthContext?: (walletClient: WalletClient, domain: string) => Promise<any>;
@@ -10,7 +12,8 @@ export interface EncryptionService {
  */
 export interface AuthContext {
 	authSig: AuthSig;
-	sessionContext?: unknown; // Lit's session stuff
+	// Lit's session stuff
+	sessionContext?: unknown;
 }
 
 export interface AuthSig {

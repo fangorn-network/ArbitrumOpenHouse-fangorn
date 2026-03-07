@@ -48,6 +48,10 @@ export class Fangorn {
 		);
 	}
 
+	getStorage(): StorageProvider<any> {
+		return this.storage;
+	} 
+
 	/**
 	 * Register a new named data source owned by the current wallet.
 	 */
