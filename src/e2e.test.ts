@@ -15,7 +15,6 @@ import { TestBed } from "./test/testbed.js";
 import { deployContract } from "./deployContract.js";
 import { FheData } from "./types/index.js";
 import PatientEvaluatorABI from "../../ArbitrumFoundersHouse/cofhe-hardhat-starter/artifacts/contracts/PatientEvaluator.sol/PatientEvaluator.json";
-import { FhenixEncryptionService } from "./modules/encryption/fhenix.js";
 
 const getEnv = (key: string) => {
 	const value = process.env[key];
@@ -138,11 +137,16 @@ describe("Fangorn FHE encryption and storage", () => {
 		};
 
 		// encrypt and upload
+		const start = Date.now();
 		const manifestCid = await testbed.encryptAndUpload(
 			datasourceName,
 			patientData,
 			computeDescriptor,
 		);
+
+		const elapsed = Date.now() - start;
+		console.log(`time elapsed: ${elapsed} ms`);
+
 		expect(manifestCid).toBeTruthy();
 		console.log(`Manifest stored at CID: ${manifestCid}`);
 
@@ -177,6 +181,9 @@ describe("Fangorn FHE encryption and storage", () => {
 			abi: PatientEvaluatorABI.abi,
 			functionName: "countMatch",
 			args: [patientData],
+			// undefined => should use whatever the wallet client dictates
+			chain: undefined,
+			account: delegatorAccount.address,
 		});
 
 		const result = await publicClient.readContract({
@@ -191,6 +198,8 @@ describe("Fangorn FHE encryption and storage", () => {
 			address: patientEvaluatorContractAddress,
 			abi: PatientEvaluatorABI.abi,
 			functionName: "reset",
+			chain: undefined,
+			account: delegatorAccount.address,
 		});
 
 		const bloodType = {
@@ -208,12 +217,15 @@ describe("Fangorn FHE encryption and storage", () => {
 			address: patientEvaluatorContractAddress,
 			abi: PatientEvaluatorABI.abi,
 			functionName: "countMatchSpecific",
+			chain: undefined,
+			account: delegatorAccount.address,
 		});
 
 		const targetCount = await publicClient.readContract({
 			address: patientEvaluatorContractAddress,
 			abi: PatientEvaluatorABI.abi,
 			functionName: "getMatchedTypeCount",
+			account: delegatorAccount.address,
 		});
 
 		console.log("targetCount", targetCount);
@@ -222,6 +234,8 @@ describe("Fangorn FHE encryption and storage", () => {
 			address: patientEvaluatorContractAddress,
 			abi: PatientEvaluatorABI.abi,
 			functionName: "reset",
+			chain: undefined,
+			account: delegatorAccount.address,
 		});
 
 		// call contract
