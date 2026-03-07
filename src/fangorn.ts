@@ -12,7 +12,10 @@ import {
 } from "./types/index.js";
 import StorageProvider from "./providers/storage/index.js";
 import { AppConfig, FangornConfig } from "./config.js";
-import { EncryptionService } from "./modules/encryption/index.js";
+import {
+	EncryptionService,
+	FhenixEncryptionService,
+} from "./modules/encryption/index.js";
 
 /**
  *
@@ -31,7 +34,6 @@ export class Fangorn {
 	public static async init(
 		walletClient: WalletClient,
 		storage: StorageProvider<any>,
-		encryptionService: EncryptionService,
 		config?: AppConfig,
 	): Promise<Fangorn> {
 		const resolvedConfig = config || FangornConfig.ArbitrumSepolia;
@@ -46,6 +48,11 @@ export class Fangorn {
 			walletClient,
 		);
 
+		const encryptionService = await FhenixEncryptionService.init(
+			walletClient,
+			config.chainName,
+		);
+
 		return new Fangorn(
 			dataSourceRegistry,
 			walletClient,
@@ -56,6 +63,10 @@ export class Fangorn {
 
 	getStorage(): StorageProvider<any> {
 		return this.storage;
+	}
+
+	getEncryptionService(): EncryptionService {
+		return this.encryptionService;
 	}
 
 	/**

@@ -70,28 +70,16 @@ export class TestBed {
 		// Storage
 		const storage = new PinataStorage(jwt, gateway);
 
-		const delegatorEncryptionService = await FhenixEncryptionService.init(
-			delegatorWalletClient,
-			rpcUrl,
-		);
-
-		const delegateeEncryptionService = await FhenixEncryptionService.init(
-			delegateeWalletClient,
-			rpcUrl,
-		);
-
 		// Fangorn instances
 		const delegatorFangorn = await Fangorn.init(
 			delegatorWalletClient,
 			storage,
-			delegatorEncryptionService,
 			config,
 		);
 
 		const delegateeFangorn = await Fangorn.init(
 			delegateeWalletClient,
 			storage,
-			delegateeEncryptionService,
 			config,
 		);
 
