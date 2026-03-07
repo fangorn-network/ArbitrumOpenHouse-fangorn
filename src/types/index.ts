@@ -1,24 +1,23 @@
-
 export interface FheData {
-  tag: string;
-  // the u64 to encrypt
-  value: bigint;
-  // keep for manifest compat
-  extension?: string;
-  fileType?: string;
+	tag: string;
+	// the u64 to encrypt
+	value: bigint;
+	// keep for manifest compat
+	extension?: string;
+	fileType?: string;
 }
 
 export interface ComputeDescriptor {
-  // e.g.: "x402f facilitator"	
-  type: string;
-  // e.g. "0.0001" = .0001 USDC 
-  price: string;
-  // a human-readable description 
-  description?: string;
-  // the FHE contract to call
-  contractAddress?: string;
-  // the function the facilitator calls
-  functionName?: string;
+	// e.g.: "x402f facilitator"
+	type: string;
+	// e.g. "0.0001" = .0001 USDC
+	price: string;
+	// a human-readable description
+	description?: string;
+	// the FHE contract to call
+	contractAddress?: string;
+	// the function the facilitator calls
+	functionName?: string;
 }
 
 export interface VaultEntry {

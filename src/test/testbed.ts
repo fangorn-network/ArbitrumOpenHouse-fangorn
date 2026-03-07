@@ -16,7 +16,6 @@ import { AppConfig } from "../config.js";
 import { arbitrumSepolia, baseSepolia } from "viem/chains";
 import { SettlementTracker } from "../interface/settlement-tracker/settlementTracker.js";
 import { computeTagCommitment, fieldToHex } from "../utils/index.js";
-import { EvmChain } from "@lit-protocol/access-control-conditions";
 import { FhenixEncryptionService } from "../modules/encryption/fhenix.js";
 
 export class TestBed {
@@ -118,20 +117,20 @@ export class TestBed {
 	}
 
 	/**
-			 * Encrypt a u64 with FHE and commit it to a vault
-			 * with a compute descriptor
-			 */
-			async encryptAndUpload(
-				datasourceName: string,
-				data: FheData[],
-				computeDescriptor: ComputeDescriptor,
-			): Promise<string> {
-				return await this.delegatorFangorn.upload(
-					datasourceName,
-					data,
-					computeDescriptor,
-				);
-			}
+	 * Encrypt a u64 with FHE and commit it to a vault
+	 * with a compute descriptor
+	 */
+	async encryptAndUpload(
+		datasourceName: string,
+		data: FheData[],
+		computeDescriptor: ComputeDescriptor,
+	): Promise<string> {
+		return await this.delegatorFangorn.upload(
+			datasourceName,
+			data,
+			computeDescriptor,
+		);
+	}
 
 	async checkDatasourceRegistryExistence(
 		who: Address,

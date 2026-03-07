@@ -2,7 +2,6 @@
 **/lib/
 **/node_modules
 .env
-lit-auth-storage
 ignore
 **/dist
 **/out

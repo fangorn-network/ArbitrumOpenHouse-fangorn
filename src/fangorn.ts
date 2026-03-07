@@ -3,7 +3,13 @@ import {
 	Vault,
 	DataSourceRegistry,
 } from "./interface/datasource-registry/dataSourceRegistry.js";
-import { ComputeDescriptor, FheData, Filedata, PendingEntry, VaultManifest } from "./types/index.js";
+import {
+	ComputeDescriptor,
+	FheData,
+	Filedata,
+	PendingEntry,
+	VaultManifest,
+} from "./types/index.js";
 import StorageProvider from "./providers/storage/index.js";
 import { AppConfig, FangornConfig } from "./config.js";
 import { EncryptionService } from "./modules/encryption/index.js";
@@ -20,7 +26,7 @@ export class Fangorn {
 		private walletClient: WalletClient,
 		private storage: StorageProvider<any>,
 		private encryptionService: EncryptionService,
-	) { }
+	) {}
 
 	public static async init(
 		walletClient: WalletClient,
@@ -50,7 +56,7 @@ export class Fangorn {
 
 	getStorage(): StorageProvider<any> {
 		return this.storage;
-	} 
+	}
 
 	/**
 	 * Register a new named data source owned by the current wallet.
@@ -77,7 +83,7 @@ export class Fangorn {
 		if (datasource.manifestCid && !overwrite) {
 			const oldManifest = await this.fetchManifest(datasource.manifestCid);
 			this.loadManifest(oldManifest);
-			try {		
+			try {
 				await this.storage.delete(datasource.manifestCid);
 			} catch (e) {
 				console.warn("Failed to unpin old manifest:", e);
@@ -93,7 +99,7 @@ export class Fangorn {
 
 	async addFile(
 		data: FheData,
-		computeDescriptor: ComputeDescriptor
+		computeDescriptor: ComputeDescriptor,
 	): Promise<{ cid: string }> {
 		const account = this.walletClient.account;
 		if (!account?.address) throw new Error("Wallet not connected");
