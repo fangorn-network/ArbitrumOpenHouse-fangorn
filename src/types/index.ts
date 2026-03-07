@@ -1,12 +1,28 @@
-import { Gadget, GadgetDescriptor } from "../modules/gadgets/types";
+
+export interface FheData {
+  tag: string;
+  // the u64 to encrypt
+  value: bigint;
+  // keep for manifest compat
+  extension?: string;
+  fileType?: string;
+}
+
+export interface ComputeDescriptor {
+  // ex: "x402f facilitator"	
+  type: string;
+  // a human-readable description 
+  description?: string;
+  // the FHE contract to call
+  contractAddress?: string;
+  // the function the facilitator calls
+  functionName?: string;
+}
 
 export interface VaultEntry {
 	tag: string;
 	cid: string;
-	index: number;
-	gadgetDescriptor: GadgetDescriptor;
-	extension: string;
-	fileType: string;
+	computeDescriptor: ComputeDescriptor;
 }
 
 export interface VaultManifest {
@@ -35,9 +51,7 @@ export const buildManifest = (options: BuildManifestOptions): VaultManifest => {
 export interface PendingEntry {
 	tag: string;
 	cid: string;
-	gadgetDescriptor: GadgetDescriptor;
-	extension: string;
-	fileType: string;
+	computeDescriptor: ComputeDescriptor;
 }
 
 export interface Filedata {

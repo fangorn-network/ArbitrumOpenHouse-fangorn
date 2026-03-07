@@ -1,15 +1,12 @@
-// fangorn.ts
-
 import { Address, createPublicClient, Hex, http, WalletClient } from "viem";
 import {
 	Vault,
 	DataSourceRegistry,
 } from "./interface/datasource-registry/dataSourceRegistry.js";
-import { Filedata, PendingEntry, VaultManifest } from "./types/index.js";
+import { ComputeDescriptor, FheData, Filedata, PendingEntry, VaultManifest } from "./types/index.js";
 import StorageProvider from "./providers/storage/index.js";
 import { AppConfig, FangornConfig } from "./config.js";
 import { EncryptionService } from "./modules/encryption/index.js";
-import { Gadget } from "./modules/gadgets/types.js";
 
 /**
  *
@@ -23,14 +20,12 @@ export class Fangorn {
 		private walletClient: WalletClient,
 		private storage: StorageProvider<any>,
 		private encryptionService: EncryptionService,
-		private domain: string,
-	) {}
+	) { }
 
 	public static async init(
 		walletClient: WalletClient,
 		storage: StorageProvider<any>,
 		encryptionService: EncryptionService,
-		domain: string,
 		config?: AppConfig,
 	): Promise<Fangorn> {
 		const resolvedConfig = config || FangornConfig.ArbitrumSepolia;
@@ -50,7 +45,6 @@ export class Fangorn {
 			walletClient,
 			storage,
 			encryptionService,
-			domain,
 		);
 	}
 
@@ -69,18 +63,16 @@ export class Fangorn {
 	 */
 	async upload(
 		name: string,
-		filedata: Filedata[],
-		gadgetFactory: (file: Filedata) => Gadget | Promise<Gadget>,
+		data: FheData[],
+		computeDescriptor: ComputeDescriptor,
 		overwrite?: boolean,
 	): Promise<string> {
 		const who = this.walletClient.account.address;
 		const datasource = await this.dataSourceRegistry.getDataSource(who, name);
 
-		// Load existing manifest if appending
 		if (datasource.manifestCid && !overwrite) {
 			const oldManifest = await this.fetchManifest(datasource.manifestCid);
 			this.loadManifest(oldManifest);
-
 			try {
 				await this.storage.delete(datasource.manifestCid);
 			} catch (e) {
@@ -88,38 +80,30 @@ export class Fangorn {
 			}
 		}
 
-		// Add files with gadgets
-		for (const file of filedata) {
-			const gadget = await gadgetFactory(file);
-			await this.addFile(file, gadget);
+		for (const item of data) {
+			await this.addFile(item, computeDescriptor);
 		}
 
 		return await this.commit(name);
 	}
 
-	/**
-	 * Encrypt and stage a single file.
-	 * Call commitVault() after adding all files.
-	 */
-	async addFile(file: Filedata, gadget: Gadget): Promise<{ cid: string }> {
+	async addFile(
+		data: FheData,
+		computeDescriptor: ComputeDescriptor
+	): Promise<{ cid: string }> {
 		const account = this.walletClient.account;
 		if (!account?.address) throw new Error("Wallet not connected");
 
-		// Encrypt using the gadget's access control
-		const encrypted = await this.encryptionService.encrypt(file, gadget);
+		const encrypted = await this.encryptionService.encrypt(data);
 
-		// Upload ciphertext to storage
 		const cid = await this.storage.store(encrypted, {
-			metadata: { name: file.tag },
+			metadata: { name: data.tag },
 		});
 
-		// Stage entry
-		this.pendingEntries.set(file.tag, {
-			tag: file.tag,
+		this.pendingEntries.set(data.tag, {
+			tag: data.tag,
 			cid,
-			extension: file.extension,
-			fileType: file.fileType,
-			gadgetDescriptor: gadget.toDescriptor(),
+			computeDescriptor,
 		});
 
 		return { cid };
@@ -148,9 +132,7 @@ export class Fangorn {
 				tag: e.tag,
 				cid: e.cid,
 				index: i,
-				extension: e.extension,
-				fileType: e.fileType,
-				gadgetDescriptor: e.gadgetDescriptor,
+				computeDescriptor: e.computeDescriptor,
 			})),
 			tree: [],
 		};
@@ -167,43 +149,6 @@ export class Fangorn {
 
 		this.pendingEntries.clear();
 		return manifestCid;
-	}
-
-	/**
-	 * Decrypt a file from a vault.
-	 */
-	async decryptFile(
-		owner: Address,
-		name: string,
-		tag: string,
-		authContext?: any,
-	): Promise<Uint8Array> {
-		// Fetch manifest and find entry
-		const vault = await this.dataSourceRegistry.getDataSource(owner, name);
-		const manifest = await this.storage.retrieve(vault.manifestCid);
-
-		const entry = manifest.entries.find((e: any) => e.tag === tag);
-		if (!entry) {
-			throw new Error(`Entry not found: ${tag}`);
-		}
-
-		// Fetch encrypted payload
-		const encrypted = await this.storage.retrieve(entry.cid);
-
-		// Decrypt via encryption service
-		const resolvedAuthContext =
-			authContext ??
-			(await this.encryptionService.createAuthContext(
-				this.walletClient,
-				this.domain,
-			));
-
-		const decrypted = await this.encryptionService.decrypt(
-			encrypted,
-			resolvedAuthContext,
-		);
-
-		return decrypted.data;
 	}
 
 	// Read operations
@@ -239,6 +184,7 @@ export class Fangorn {
 		if (!entry) {
 			throw new Error(`Entry not found: ${tag}`);
 		}
+		
 		return entry;
 	}
 
@@ -259,9 +205,7 @@ export class Fangorn {
 			this.pendingEntries.set(entry.tag, {
 				tag: entry.tag,
 				cid: entry.cid,
-				extension: entry.extension,
-				fileType: entry.fileType,
-				gadgetDescriptor: entry.gadgetDescriptor,
+				computeDescriptor: entry.computeDescriptor,
 			});
 		}
 	}

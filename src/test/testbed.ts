@@ -10,35 +10,25 @@ import {
 	http,
 } from "viem";
 import { Fangorn } from "../fangorn.js";
-import { Filedata } from "../types/index.js";
-import { createLitClient } from "@lit-protocol/lit-client";
-import { nagaDev } from "@lit-protocol/networks";
-import { PinataSDK } from "pinata";
+import { ComputeDescriptor, FheData } from "../types/index.js";
 import { PinataStorage } from "../providers/storage/pinata/index.js";
 import { AppConfig } from "../config.js";
 import { arbitrumSepolia, baseSepolia } from "viem/chains";
-import { LitEncryptionService } from "../modules/encryption/lit.js";
 import { SettlementTracker } from "../interface/settlement-tracker/settlementTracker.js";
 import { computeTagCommitment, fieldToHex } from "../utils/index.js";
-import { emptyWallet } from "./test-gadget.js";
 import { EvmChain } from "@lit-protocol/access-control-conditions";
-import { PaymentGadget } from "../modules/gadgets/payment.js";
+import { FhenixEncryptionService } from "../modules/encryption/fhenix.js";
 
 export class TestBed {
 	// fangorn instances
-	private delegatorFangorn: Fangorn;
-	private delegateeFangorn: Fangorn;
+	public delegatorFangorn: Fangorn;
+	public delegateeFangorn: Fangorn;
+	public storage: PinataStorage;
 
 	private delegatorAddress: Address;
-
-	private storage: PinataStorage;
-
 	private usdcContractAddress: Address;
-
 	private vaultIds: Map<string, Hex>;
 	private config: AppConfig;
-
-	private litChain: EvmChain;
 
 	constructor(
 		delegatorAddress: Address,
@@ -46,17 +36,13 @@ export class TestBed {
 		delegateeFangorn: Fangorn,
 		storage: PinataStorage,
 		config: AppConfig,
-		litChain: EvmChain,
-		usdcContractAddress: Address,
 	) {
 		this.delegatorAddress = delegatorAddress;
 		this.delegatorFangorn = delegatorFangorn;
 		this.delegateeFangorn = delegateeFangorn;
 		this.vaultIds = new Map();
 		this.config = config;
-		this.litChain = litChain;
 		this.storage = storage;
-		this.usdcContractAddress = usdcContractAddress;
 	}
 
 	public static async init(
@@ -65,10 +51,8 @@ export class TestBed {
 		jwt: string,
 		gateway: string,
 		dataSourceRegistryContractAddress: Hex,
-		usdcContractAddress: Hex,
 		rpcUrl: string,
 		chain: string,
-		litChain: EvmChain,
 		caip2: number,
 	) {
 		let chainImpl: Chain = arbitrumSepolia;
@@ -84,30 +68,31 @@ export class TestBed {
 			caip2,
 		};
 
-		// Lit-based Encryption services
-		const delegatorEncryption = await LitEncryptionService.init(chain);
-		const delegateeEncryption = await LitEncryptionService.init(chain);
-
 		// Storage
-		const delegatorStorage = new PinataStorage(jwt, gateway);
-		const delegateeStorage = new PinataStorage(jwt, gateway);
+		const storage = new PinataStorage(jwt, gateway);
 
-		const domain = "localhost";
+		const delegatorEncryptionService = await FhenixEncryptionService.init(
+			delegatorWalletClient,
+			rpcUrl,
+		);
+
+		const delegateeEncryptionService = await FhenixEncryptionService.init(
+			delegateeWalletClient,
+			rpcUrl,
+		);
 
 		// Fangorn instances
 		const delegatorFangorn = await Fangorn.init(
 			delegatorWalletClient,
-			delegatorStorage,
-			delegatorEncryption,
-			domain,
+			storage,
+			delegatorEncryptionService,
 			config,
 		);
 
 		const delegateeFangorn = await Fangorn.init(
 			delegateeWalletClient,
-			delegateeStorage,
-			delegateeEncryption,
-			domain,
+			storage,
+			delegateeEncryptionService,
 			config,
 		);
 
@@ -115,10 +100,8 @@ export class TestBed {
 			delegatorWalletClient.account.address,
 			delegatorFangorn,
 			delegateeFangorn,
-			delegatorStorage,
+			storage,
 			config,
-			litChain,
-			usdcContractAddress,
 		);
 	}
 
@@ -135,61 +118,19 @@ export class TestBed {
 	}
 
 	/**
-	 * Upload files with empty wallet gadget
+	 * Encrypt a u64 with FHE and commit it to a vault
+	 * with a compute descriptor
 	 */
-	async fileUploadEmptyWallet(
+	async encryptAndUpload(
 		datasourceName: string,
-		filedata: Filedata[],
+		data: FheData[],
+		computeDescriptor: ComputeDescriptor,
 	): Promise<string> {
 		return await this.delegatorFangorn.upload(
 			datasourceName,
-			filedata,
-			(_file) => emptyWallet(this.litChain),
+			data,
+			computeDescriptor,
 		);
-	}
-
-	async fileUploadPaymentGadget(
-		datasourceName: string,
-		filedata: Filedata,
-		usdcPrice: string,
-		settlementTrackerContractAddress: Address,
-		jwt: string,
-	): Promise<string> {
-		return await this.delegatorFangorn.upload(
-			datasourceName,
-			[filedata],
-			async (file) => {
-				const commitment = await computeTagCommitment(
-					this.delegatorAddress,
-					datasourceName,
-					file.tag,
-					usdcPrice,
-				);
-				return new PaymentGadget({
-					commitment: fieldToHex(commitment),
-					chainName: this.config.chainName,
-					settlementTrackerContractAddress,
-					usdcPrice,
-					pinataJwt: jwt,
-				});
-			},
-		);
-	}
-
-	async tryDecrypt(
-		owner: Address,
-		name: string,
-		tag: string,
-	): Promise<Uint8Array> {
-		return await this.delegateeFangorn.decryptFile(owner, name, tag);
-	}
-
-	async tryDecryptDelegator(
-		owner: Address,
-		name: string,
-		tag: string,
-	): Promise<Uint8Array> {
-		return await this.delegatorFangorn.decryptFile(owner, name, tag);
 	}
 
 	async checkDatasourceRegistryExistence(
