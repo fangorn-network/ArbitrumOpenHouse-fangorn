@@ -1,5 +1,5 @@
 import { createPublicClient, http, WalletClient } from "viem";
-import { FheData } from "../../types";
+import { FheInputData } from "../../types";
 import { EncryptionService } from ".";
 import { createRequire } from "module";
 import { arbitrumSepolia } from "viem/chains";
@@ -36,10 +36,14 @@ export class FhenixEncryptionService implements EncryptionService {
 		return new FhenixEncryptionService();
 	}
 
-	async encrypt(data: FheData): Promise<any> {
+	async encrypt(data: FheInputData): Promise<any> {
+		const dataArray = [];
+		for (const entry in data.value) {
+			dataArray.push(Encryptable.uint32(entry));
+		}
 		const result = await cofhejs.encrypt({
 			permission: "permission",
-			data: Encryptable.uint32(data.value),
+			data: dataArray,
 		} as any);
 
 		return result;

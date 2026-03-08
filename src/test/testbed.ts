@@ -10,7 +10,7 @@ import {
 	http,
 } from "viem";
 import { Fangorn } from "../fangorn.js";
-import { ComputeDescriptor, FheData } from "../types/index.js";
+import { ComputeDescriptor, FheInputData } from "../types/index.js";
 import { PinataStorage } from "../providers/storage/pinata/index.js";
 import { AppConfig } from "../config.js";
 import { arbitrumSepolia, baseSepolia } from "viem/chains";
@@ -110,7 +110,7 @@ export class TestBed {
 	 */
 	async encryptAndUpload(
 		datasourceName: string,
-		data: FheData[],
+		data: FheInputData[],
 		computeDescriptor: ComputeDescriptor,
 	): Promise<string> {
 		return await this.delegatorFangorn.upload(

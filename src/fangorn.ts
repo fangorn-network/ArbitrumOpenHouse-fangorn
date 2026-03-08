@@ -5,7 +5,7 @@ import {
 } from "./interface/datasource-registry/dataSourceRegistry.js";
 import {
 	ComputeDescriptor,
-	FheData,
+	FheInputData,
 	Filedata,
 	PendingEntry,
 	VaultManifest,
@@ -85,7 +85,7 @@ export class Fangorn {
 	 */
 	async upload(
 		name: string,
-		data: FheData[],
+		data: FheInputData[],
 		computeDescriptor: ComputeDescriptor,
 		overwrite?: boolean,
 	): Promise<string> {
@@ -110,7 +110,7 @@ export class Fangorn {
 	}
 
 	async addFile(
-		data: FheData,
+		data: FheInputData,
 		computeDescriptor: ComputeDescriptor,
 	): Promise<{ cid: string }> {
 		const account = this.walletClient.account;

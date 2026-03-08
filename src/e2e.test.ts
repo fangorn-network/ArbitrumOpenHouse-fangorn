@@ -13,7 +13,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { arbitrumSepolia, baseSepolia } from "viem/chains";
 import { TestBed } from "./test/testbed.js";
 import { deployContract } from "./deployContract.js";
-import { FheData } from "./types/index.js";
+import { FheInputData } from "./types/index.js";
 import PatientEvaluatorABI from "../../ArbitrumFoundersHouse/cofhe-hardhat-starter/artifacts/contracts/PatientEvaluator.sol/PatientEvaluator.json";
 
 const getEnv = (key: string) => {
@@ -111,22 +111,10 @@ describe("Fangorn FHE encryption and storage", () => {
 
 		// data to encrypt
 		const tag = "Patient Blood Data - 1";
-		const patientData: FheData[] = [
+		const patientData: FheInputData[] = [
 			{
 				tag,
-				value: 0n,
-			},
-			{
-				tag,
-				value: 2n,
-			},
-			{
-				tag,
-				value: 2n,
-			},
-			{
-				tag,
-				value: 1n,
+				value: [0n, 2n, 2n, 1n],
 			},
 		];
 
@@ -176,20 +164,26 @@ describe("Fangorn FHE encryption and storage", () => {
 		console.log("ciphertext");
 		console.log(ciphertext);
 
+		console.log(JSON.stringify(ciphertext.data.data, null, 2));
+
 		const hashCountMatch = await delegatorWalletClient.writeContract({
 			address: patientEvaluatorContractAddress,
 			abi: PatientEvaluatorABI.abi,
 			functionName: "countMatch",
-			args: [patientData],
+			args: [ciphertext.data.data],
 			// undefined => should use whatever the wallet client dictates
 			chain: undefined,
-			account: delegatorAccount.address,
+			account: delegatorAccount,
 		});
+
+		await publicClient.waitForTransactionReceipt({ hash: hashCountMatch });
 
 		const result = await publicClient.readContract({
 			address: patientEvaluatorContractAddress,
 			abi: PatientEvaluatorABI.abi,
 			functionName: "getAllTypesCount",
+			args: [],
+			account: delegatorAccount,
 		});
 
 		console.log("Types count result: ", result);
@@ -199,33 +193,42 @@ describe("Fangorn FHE encryption and storage", () => {
 			abi: PatientEvaluatorABI.abi,
 			functionName: "reset",
 			chain: undefined,
-			account: delegatorAccount.address,
+			account: delegatorAccount,
 		});
+
+		await publicClient.waitForTransactionReceipt({ hash: hashReset });
 
 		const bloodType = {
 			tag: "target blood type",
 			// plaintext
-			value: 2n,
-			fileType: "fhe/uint32",
+			value: [2n],
 		};
 
-		const bloodTypeEnc = testbed.delegatorFangorn
+		const bloodTypeEnc = await testbed.delegatorFangorn
 			.getEncryptionService()
 			.encrypt(bloodType);
+
+		console.log("bloodTypeEnc", bloodTypeEnc);
+		console.log("bloodTypeEnc.data.data", bloodTypeEnc.data.data);
 
 		const hashCountMatchSpecific = await delegatorWalletClient.writeContract({
 			address: patientEvaluatorContractAddress,
 			abi: PatientEvaluatorABI.abi,
 			functionName: "countMatchSpecific",
 			chain: undefined,
-			account: delegatorAccount.address,
+			account: delegatorAccount,
+			args: [ciphertext.data.data, bloodTypeEnc.data.data[0]],
+		});
+
+		await publicClient.waitForTransactionReceipt({
+			hash: hashCountMatchSpecific,
 		});
 
 		const targetCount = await publicClient.readContract({
 			address: patientEvaluatorContractAddress,
 			abi: PatientEvaluatorABI.abi,
 			functionName: "getMatchedTypeCount",
-			account: delegatorAccount.address,
+			account: delegatorAccount,
 		});
 
 		console.log("targetCount", targetCount);
@@ -235,8 +238,10 @@ describe("Fangorn FHE encryption and storage", () => {
 			abi: PatientEvaluatorABI.abi,
 			functionName: "reset",
 			chain: undefined,
-			account: delegatorAccount.address,
+			account: delegatorAccount,
 		});
+
+		// await publicClient.waitForTransactionReceipt({ hash: hashReset2 });
 
 		// call contract
 		// get result

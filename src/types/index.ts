@@ -1,7 +1,7 @@
-export interface FheData {
+export interface FheInputData {
 	tag: string;
-	// the u64 to encrypt
-	value: bigint;
+	// the u32 to encrypt
+	value: any[];
 	// keep for manifest compat
 	extension?: string;
 	fileType?: string;

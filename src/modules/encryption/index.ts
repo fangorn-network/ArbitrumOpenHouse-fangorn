@@ -1,11 +1,14 @@
 import { WalletClient } from "viem";
-import { FheData } from "../../types";
+import { FheInputData } from "../../types";
 
-export * from './fhenix.js';
+export * from "./fhenix.js";
 
 export interface EncryptionService {
-	encrypt(data: FheData): Promise<any>;
-	createAuthContext?: (walletClient: WalletClient, domain: string) => Promise<any>;
+	encrypt(data: FheInputData): Promise<any>;
+	createAuthContext?: (
+		walletClient: WalletClient,
+		domain: string,
+	) => Promise<any>;
 }
 /**
  * Auth context needed for Lit decryption

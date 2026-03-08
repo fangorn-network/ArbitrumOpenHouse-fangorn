@@ -15,7 +15,7 @@ import { privateKeyToAccount, PrivateKeyAccount } from "viem/accounts";
 import { Fangorn } from "../fangorn.js";
 import {
 	ComputeDescriptor,
-	FheData as FheInputData,
+	FheInputData as FheInputData,
 	Filedata,
 } from "../types/index.js";
 import "dotenv/config";
