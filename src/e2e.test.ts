@@ -170,11 +170,22 @@ describe("Fangorn FHE encryption and storage", () => {
 
 		const fhenixService =
 			testbed.delegatorFangorn.getEncryptionService() as FhenixEncryptionService;
+		const previewCount = await publicClient.readContract({
+			address: patientEvaluatorContractAddress,
+			abi: PatientEvaluatorABI.abi,
+			functionName: "getMatchedTypeCount",
+			account: delegatorAccount,
+		});
+		console.log("previewCount", previewCount);
+
+		const unsealedPreviewCount = await fhenixService.unseal(previewCount);
+
+		console.log("unsealedCount", unsealedPreviewCount);
 
 		const bloodType = {
 			tag: "target blood type",
 			// plaintext
-			value: [2n],
+			value: [7n],
 		};
 
 		const bloodTypeEnc = await testbed.delegatorFangorn
