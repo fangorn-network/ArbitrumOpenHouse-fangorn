@@ -15,6 +15,8 @@ import { TestBed } from "./test/testbed.js";
 import { deployContract } from "./deployContract.js";
 import { FheInputData } from "./types/index.js";
 import PatientEvaluatorABI from "../../ArbitrumFoundersHouse/cofhe-hardhat-starter/artifacts/contracts/PatientEvaluator.sol/PatientEvaluator.json";
+import { FhenixEncryptionService } from "./modules/encryption/fhenix.js";
+// import { FhenixEncryptionService } from "./modules/encryption/fhenix.js";
 
 const getEnv = (key: string) => {
 	const value = process.env[key];
@@ -94,7 +96,7 @@ describe("Fangorn FHE encryption and storage", () => {
 		);
 	}, 120_000);
 
-	it("should FHE-encrypt a u64, store the ciphertext, and verify it is retrievable", async () => {
+	it("should FHE-encrypt a u32, store the ciphertext, and verify it is retrievable", async () => {
 		const datasourceName = `fhe_test_${Date.now()}`;
 
 		// register datasource
@@ -114,7 +116,7 @@ describe("Fangorn FHE encryption and storage", () => {
 		const patientData: FheInputData[] = [
 			{
 				tag,
-				value: [0n, 2n, 2n, 1n],
+				value: [0n, 4n, 3n, 1n],
 			},
 		];
 
@@ -166,37 +168,8 @@ describe("Fangorn FHE encryption and storage", () => {
 
 		console.log(JSON.stringify(ciphertext.data.data, null, 2));
 
-		const hashCountMatch = await delegatorWalletClient.writeContract({
-			address: patientEvaluatorContractAddress,
-			abi: PatientEvaluatorABI.abi,
-			functionName: "countMatch",
-			args: [ciphertext.data.data],
-			// undefined => should use whatever the wallet client dictates
-			chain: undefined,
-			account: delegatorAccount,
-		});
-
-		await publicClient.waitForTransactionReceipt({ hash: hashCountMatch });
-
-		const result = await publicClient.readContract({
-			address: patientEvaluatorContractAddress,
-			abi: PatientEvaluatorABI.abi,
-			functionName: "getAllTypesCount",
-			args: [],
-			account: delegatorAccount,
-		});
-
-		console.log("Types count result: ", result);
-
-		const hashReset = await delegatorWalletClient.writeContract({
-			address: patientEvaluatorContractAddress,
-			abi: PatientEvaluatorABI.abi,
-			functionName: "reset",
-			chain: undefined,
-			account: delegatorAccount,
-		});
-
-		await publicClient.waitForTransactionReceipt({ hash: hashReset });
+		const fhenixService =
+			testbed.delegatorFangorn.getEncryptionService() as FhenixEncryptionService;
 
 		const bloodType = {
 			tag: "target blood type",
@@ -230,8 +203,13 @@ describe("Fangorn FHE encryption and storage", () => {
 			functionName: "getMatchedTypeCount",
 			account: delegatorAccount,
 		});
-
 		console.log("targetCount", targetCount);
+		const unsealedCount = await fhenixService.unseal(
+			targetCount,
+			delegatorWalletClient,
+		);
+
+		console.log("unsealedCount", unsealedCount);
 
 		const hashReset2 = await delegatorWalletClient.writeContract({
 			address: patientEvaluatorContractAddress,
@@ -240,21 +218,5 @@ describe("Fangorn FHE encryption and storage", () => {
 			chain: undefined,
 			account: delegatorAccount,
 		});
-
-		// await publicClient.waitForTransactionReceipt({ hash: hashReset2 });
-
-		// call contract
-		// get result
-		// unseal
-
-		// // FHE encrypted u64
-		// expect((ciphertext as any).data).toBeTruthy();
-		// // cofhejs permit
-		// expect((ciphertext as any).permission).toBeTruthy();
-
-		console.log("FHE ciphertext stored and retrieved successfully.");
-		console.log(
-			"Next step: facilitator pays => executes => caller unseals (mocked until FHE contract is ready).",
-		);
 	}, 120_000);
 });

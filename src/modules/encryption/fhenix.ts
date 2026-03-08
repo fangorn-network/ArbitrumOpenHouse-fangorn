@@ -5,7 +5,7 @@ import { createRequire } from "module";
 import { arbitrumSepolia } from "viem/chains";
 
 const require = createRequire(import.meta.url);
-const { cofhejs, Encryptable } = require("cofhejs/node");
+const { cofhejs, Encryptable, FheTypes } = require("cofhejs/node");
 
 export class FhenixEncryptionService implements EncryptionService {
 	constructor() {}
@@ -23,7 +23,7 @@ export class FhenixEncryptionService implements EncryptionService {
 		const initResult = await cofhejs.initializeWithViem({
 			viemClient: publicClient,
 			viemWalletClient: walletClient,
-			generatePermit: true,
+			generatePermit: false,
 			environment: "TESTNET",
 		});
 
@@ -47,5 +47,37 @@ export class FhenixEncryptionService implements EncryptionService {
 		} as any);
 
 		return result;
+	}
+
+	async unseal(encryptedResult: any, wallet: WalletClient): Promise<any> {
+		const permitResult = await cofhejs.createPermit({
+			type: "self",
+			issuer: wallet.account?.address,
+		});
+
+		if (!permitResult.success) {
+			console.error("Failed to create permit:", permitResult.error);
+			return;
+		}
+
+		const permit = permitResult.data;
+
+		// Step 8: Unseal the encrypted value
+		// When creating a permit, cofhejs will use it automatically,
+		// but you can pass it manually as well for explicit control
+		const unsealResult = await cofhejs.unseal(
+			encryptedResult,
+			FheTypes.Uint32,
+			permit.issuer,
+			permit.getHash(),
+		);
+
+		if (!unsealResult.success) {
+			console.error("Failed to unseal counter:", unsealResult.error);
+			return;
+		}
+
+		console.log("Unsealed counter value:", unsealResult.data.toString());
+		return unsealResult.data;
 	}
 }
