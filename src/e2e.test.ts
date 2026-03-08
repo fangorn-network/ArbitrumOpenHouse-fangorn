@@ -166,7 +166,7 @@ describe("Fangorn FHE encryption and storage", () => {
 		console.log("ciphertext");
 		console.log(ciphertext);
 
-		console.log(JSON.stringify(ciphertext.data.data, null, 2));
+		console.log(JSON.stringify((ciphertext as any).data.data, null, 2));
 
 		const fhenixService =
 			testbed.delegatorFangorn.getEncryptionService() as FhenixEncryptionService;
