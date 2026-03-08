@@ -8,7 +8,11 @@ const require = createRequire(import.meta.url);
 const { cofhejs, Encryptable, FheTypes } = require("cofhejs/node");
 
 export class FhenixEncryptionService implements EncryptionService {
-	constructor() {}
+	constructor(walletClient: WalletClient) {
+		this.walletClient = walletClient;
+	}
+
+	private walletClient: WalletClient;
 
 	public static async init(
 		walletClient: WalletClient,
@@ -32,8 +36,8 @@ export class FhenixEncryptionService implements EncryptionService {
 			process.exit(1);
 		}
 
-		await cofhejs.createPermit();
-		return new FhenixEncryptionService();
+		// await cofhejs.createPermit();
+		return new FhenixEncryptionService(walletClient);
 	}
 
 	async encrypt(data: FheInputData): Promise<any> {
@@ -49,10 +53,10 @@ export class FhenixEncryptionService implements EncryptionService {
 		return result;
 	}
 
-	async unseal(encryptedResult: any, wallet: WalletClient): Promise<any> {
+	async unseal(encryptedResult: any): Promise<any> {
 		const permitResult = await cofhejs.createPermit({
 			type: "self",
-			issuer: wallet.account?.address,
+			issuer: this.walletClient.account?.address,
 		});
 
 		if (!permitResult.success) {
