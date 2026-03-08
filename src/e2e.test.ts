@@ -116,7 +116,7 @@ describe("Fangorn FHE encryption and storage", () => {
 		const patientData: FheInputData[] = [
 			{
 				tag,
-				value: [0n, 4n, 3n, 1n],
+				value: [2n, 4n, 3n, 2n],
 			},
 		];
 
@@ -184,13 +184,22 @@ describe("Fangorn FHE encryption and storage", () => {
 		console.log("bloodTypeEnc", bloodTypeEnc);
 		console.log("bloodTypeEnc.data.data", bloodTypeEnc.data.data);
 
+		const processedData = ciphertext.data.data.map((item: any) => ({
+			...item,
+			ctHash: BigInt(item.ctHash),
+		}));
+
+		console.log("processed: ", processedData);
+
+		// console.log(JSON.stringify("ciphertext data now:" ciphertext.data.data, null, 2))
+
 		const hashCountMatchSpecific = await delegatorWalletClient.writeContract({
 			address: patientEvaluatorContractAddress,
 			abi: PatientEvaluatorABI.abi,
 			functionName: "countMatchSpecific",
 			chain: undefined,
 			account: delegatorAccount,
-			args: [ciphertext.data.data, bloodTypeEnc.data.data[0]],
+			args: [processedData, bloodTypeEnc.data.data[0]],
 		});
 
 		await publicClient.waitForTransactionReceipt({
@@ -204,10 +213,7 @@ describe("Fangorn FHE encryption and storage", () => {
 			account: delegatorAccount,
 		});
 		console.log("targetCount", targetCount);
-		const unsealedCount = await fhenixService.unseal(
-			targetCount,
-			delegatorWalletClient,
-		);
+		const unsealedCount = await fhenixService.unseal(targetCount);
 
 		console.log("unsealedCount", unsealedCount);
 
