@@ -42,9 +42,7 @@ export class FhenixEncryptionService implements EncryptionService {
 
 	async encrypt(data: FheInputData): Promise<any> {
 		const dataArray = [];
-		console.log("data.value", data.value);
 		for (const entry of data.value) {
-			console.log("entry: ", entry);
 			dataArray.push(Encryptable.uint32(entry));
 		}
 		const result = await cofhejs.encrypt({

@@ -163,46 +163,23 @@ describe("Fangorn FHE encryption and storage", () => {
 		const ciphertext = await testbed.storage.retrieve(entry.cid);
 		expect(ciphertext).toBeTruthy();
 
-		console.log("ciphertext");
-		console.log(ciphertext);
-
-		console.log(JSON.stringify((ciphertext as any).data.data, null, 2));
-
 		const fhenixService =
 			testbed.delegatorFangorn.getEncryptionService() as FhenixEncryptionService;
-		const previewCount = await publicClient.readContract({
-			address: patientEvaluatorContractAddress,
-			abi: PatientEvaluatorABI.abi,
-			functionName: "getMatchedTypeCount",
-			account: delegatorAccount,
-		});
-		console.log("previewCount", previewCount);
-
-		const unsealedPreviewCount = await fhenixService.unseal(previewCount);
-
-		console.log("unsealedCount", unsealedPreviewCount);
 
 		const bloodType = {
 			tag: "target blood type",
 			// plaintext
-			value: [7n],
+			value: [2n],
 		};
 
 		const bloodTypeEnc = await testbed.delegatorFangorn
 			.getEncryptionService()
 			.encrypt(bloodType);
 
-		console.log("bloodTypeEnc", bloodTypeEnc);
-		console.log("bloodTypeEnc.data.data", bloodTypeEnc.data.data);
-
 		const processedData = ciphertext.data.data.map((item: any) => ({
 			...item,
 			ctHash: BigInt(item.ctHash),
 		}));
-
-		console.log("processed: ", processedData);
-
-		// console.log(JSON.stringify("ciphertext data now:" ciphertext.data.data, null, 2))
 
 		const hashCountMatchSpecific = await delegatorWalletClient.writeContract({
 			address: patientEvaluatorContractAddress,
@@ -223,10 +200,8 @@ describe("Fangorn FHE encryption and storage", () => {
 			functionName: "getMatchedTypeCount",
 			account: delegatorAccount,
 		});
-		console.log("targetCount", targetCount);
-		const unsealedCount = await fhenixService.unseal(targetCount);
 
-		console.log("unsealedCount", unsealedCount);
+		const unsealedCount = await fhenixService.unseal(targetCount);
 
 		const hashReset2 = await delegatorWalletClient.writeContract({
 			address: patientEvaluatorContractAddress,
