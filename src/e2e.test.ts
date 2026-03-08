@@ -164,13 +164,13 @@ describe("Fangorn FHE encryption and storage", () => {
 		console.log("ciphertext");
 		console.log(ciphertext);
 
-		console.log(JSON.stringify(ciphertext.data.data, null, 2));
+		console.log(JSON.stringify((ciphertext as any).data.data, null, 2));
 
 		const hashCountMatch = await delegatorWalletClient.writeContract({
 			address: patientEvaluatorContractAddress,
 			abi: PatientEvaluatorABI.abi,
 			functionName: "countMatch",
-			args: [ciphertext.data.data],
+			args: [(ciphertext as any).data.data],
 			// undefined => should use whatever the wallet client dictates
 			chain: undefined,
 			account: delegatorAccount,

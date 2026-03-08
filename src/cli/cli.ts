@@ -144,19 +144,8 @@ async function getFangorn(chain: Chain): Promise<Fangorn> {
 
 	// default to arbitrum sepolia
 	const appConfig: AppConfig = cfg.cfg;
-
-	// const domain = process.env.DOMAIN || "localhost:3000";
-
-	// storage via Pinata
-	// const pinata = new PinataSDK({
-	//     pinataJwt: cfg.jwt,
-	//     pinataGateway: cfg.gateway,
-	// });
 	const storage = new PinataStorage(cfg.jwt, cfg.gateway);
-	const chainName = process.env.CHAIN_NAME;
-
 	_fangorn = await Fangorn.init(walletClient, storage, appConfig);
-
 	return _fangorn;
 }
 
@@ -234,6 +223,7 @@ program
 	.option("-s, --skip-card", "Skip agent card creation")
 	.option("-e, --skip-erc", "Skip ERC-8007 registrion")
 	.option("-d, --skip-ds", "Skip datasource registrion")
+	.option("-f, --skip-find-agent", "Skip find agent")
 	.action(async (name: string, options) => {
 		try {
 			intro("Chain selection");
@@ -243,6 +233,7 @@ program
 			outro(`Selected chain ${chain.name}`);
 
 			let registerDatasource = options.skipDs ? false : true;
+			let skipFindAgent = options.skipFindAgent ? false : true;
 			let createAgentCard = options.skipCard ? false : true;
 			let erc8004Registration = options.skipErc ? false : true;
 
@@ -598,7 +589,7 @@ program
 			outro(`Agent Registration is Complete for ${chain.name}`);
 
 			if (registerDatasource) {
-				if (!datasourceAgentId) {
+				if (!datasourceAgentId && skipFindAgent) {
 					const agentsList = await agent0Sdk.searchAgents({ name });
 					if (agentsList.length > 0) {
 						datasourceAgentId = agentsList[0].agentId;
@@ -608,6 +599,7 @@ program
 						);
 					}
 				}
+
 				const fangorn = await getFangorn(chain);
 				const id = await fangorn.registerDataSource(name, datasourceAgentId);
 				note(`Data source ${name} registered with id = ${id}`);
@@ -643,10 +635,12 @@ program
 			const tag = options.tag as string;
 			const price = options.price as string;
 
-			const fheData: FheInputData[] = bloodTypeValues.map((v, i) => ({
-				tag: bloodTypeValues.length === 1 ? tag : `${i}-${tag}`,
-				value: BigInt(v),
-			}));
+			const fheData: FheInputData[] = [
+				{
+					tag,
+					value: [bloodTypeValues.map((v) => BigInt(v))],
+				},
+			];
 
 			const computeDescriptor: ComputeDescriptor = {
 				type: "x402f facilitator",
