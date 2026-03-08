@@ -6,7 +6,6 @@ import {
 import {
 	ComputeDescriptor,
 	FheInputData,
-	Filedata,
 	PendingEntry,
 	VaultManifest,
 } from "./types/index.js";
@@ -16,7 +15,6 @@ import {
 	EncryptionService,
 	FhenixEncryptionService,
 } from "./modules/encryption/index.js";
-import { cofhejs, Encryptable, FheTypes } from "cofhejs/node";
 
 /**
  *

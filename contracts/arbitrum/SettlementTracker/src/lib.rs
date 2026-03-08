@@ -26,6 +26,10 @@ sol_interface! {
             bytes32 s
         ) external;
     }
+
+    // interface IPatientEvaluator {
+    //     function countMatch(InEuint32[] calldata patientTypes) public;
+    // }
 }
 
 sol! {
@@ -50,7 +54,7 @@ pub enum SettlementTrackerError {
 #[entrypoint]
 pub struct SettlementTracker {
     // the usdc contract address
-    usdc_address: StorageAddress,
+        : StorageAddress,
     // map hash(owner_addr + name + tag + buyer_addr) => accessibility status
     settlement_tracker: StorageMap<FixedBytes<32>, StorageBool>,
 }
@@ -90,7 +94,7 @@ impl SettlementTracker {
             }
             self.settlement_tracker.setter(hash).set(true);          
             self.vm().log(SettlementRecorded { hash, amount });
-            return Ok(());
+            return Ok(());  
         }
         
         return Err(SettlementTrackerError::AlreadyPaid(AlreadyPaid {}));
